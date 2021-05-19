@@ -1,0 +1,2 @@
+// suppress Log
+console.log = () => { }
