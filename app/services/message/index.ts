@@ -13,6 +13,7 @@ import { Chat } from "../../../sequelize/models/Chat";
 export class MessageUtils {
 	static async getChatMessages(
 		chatId: string | number,
+		lastMessageId: string | null = null,
 		returns: SequelizeAttributes = SequelizeAttributes.WithoutIndexes
 	): Promise<Message[]> {
 		if (typeof chatId === "string") {

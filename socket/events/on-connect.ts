@@ -1,27 +1,16 @@
-import { Server, Socket } from "socket.io";
+import { Socket } from "socket.io";
 import { IOEvents } from ".";
-import { t } from "../../sequelize/locales";
-import { SocketData } from "../models";
-import { OnAuthorization } from "./on-authorization";
-import { OnEndCall } from "./on-end-call";
+import { OnAuthorization, OnDisconnect } from ".";
+import { OnSetLanguage } from ".";
 
-function OnLocaleSet(socket: Socket, data: SocketData = { locale:"en" }) {
-    socket.locale = data.locale ?? "en";
-    socket.t = (message: string, ...args: any) => {
-        // t.setLocale(socket.locale);
-        // return t.__(message, ...args);
-        return message
-    };
-}
+export function OnConnect(socket: Socket) {
+	console.log("New User Connected");
 
-export function OnConnect(io: Server, socket: Socket) {
+	OnSetLanguage(socket);
 
-    console.log("New User Connected");
-    OnLocaleSet(socket);
+	socket.on(IOEvents.AUTHORIZATION, (data) => OnAuthorization(socket, data));
+	socket.on(IOEvents.SET_LANGUAGE, (data) => OnSetLanguage(socket, data));
+	socket.on(IOEvents.DISCONNECT, () => OnDisconnect(socket));
 
-    socket.on(IOEvents.AUTHORIZATION, data=> OnAuthorization(io, socket, data));
-    socket.on(IOEvents.SET_LANGUAGE, data=> OnLocaleSet(socket, data));
-    socket.on(IOEvents.DISCONNECT, () => OnEndCall(socket));
-
-    socket.emit(IOEvents.CONNECT);
+	socket.emit(IOEvents.CONNECT);
 }

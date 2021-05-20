@@ -2,9 +2,9 @@ import express from "express"; // using express
 import http from "http";
 import { createAdapter } from "socket.io-redis";
 import { Socket } from "socket.io";
-import { Server } from 'socket.io';
+import { Server } from "socket.io";
 import Configs from "../configs";
-import { OnConnect } from "./events/on-connect";
+import { OnConnect } from "./events";
 import { Logger } from "../sequelize/utils/logger";
 import { RedisClient } from "redis";
 import chalk from "chalk";
@@ -18,8 +18,10 @@ declare module "socket.io" {
 		t(message: string, ...args: any): string;
 		locale: string;
 		userId?: string;
-		meetingId?: string;
-		user?: User
+		user?: User;
+		roomsJoined: {
+			[key: string]: number;
+		};
 	}
 }
 
@@ -34,13 +36,17 @@ export const StartSocketServer = () => {
 		io.adapter(createAdapter({ pubClient, subClient }));
 
 		// make connection with user from server side
-		io.on("connection", (socket: Socket) => OnConnect(io, socket));
+		io.on("connection", (socket: Socket) => OnConnect(socket));
 
 		const port = socketConfig.port; // setting the port
 		const onLaunchServer = () => {
-			console.timeEnd('* Server start process took')
-			Logger.info(`* Socket Server is Live at: ${chalk.bold.greenBright(socketConfig.host + ':' + port)} \\o/`)
-		}
+			console.timeEnd("* Server start process took");
+			Logger.info(
+				`* Socket Server is Live at: ${chalk.bold.greenBright(
+					socketConfig.host + ":" + port
+				)} \\o/`
+			);
+		};
 
 		server.listen(port, onLaunchServer);
 	} catch (error) {

@@ -64,6 +64,5 @@ export async function Start(): Promise<boolean> {
 
 (async () => {
 	Start();
-	// TODO: START SOCKET SERVER
-	// StartSocketServer();
+	StartSocketServer();
 })();

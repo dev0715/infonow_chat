@@ -8,29 +8,35 @@ import { NotFoundError } from "../../../sequelize/utils/errors";
 import { sequelize } from "../../../sequelize";
 import { Chat } from "../../../sequelize/models/Chat";
 import { ChatParticipant } from "../../../sequelize/models/ChatParticipant";
-import { Message } from "../../../sequelize/models/Message";
 
 export class ChatUtils {
 	static async getAllUserChats(
 		userId: string,
 		returns: SequelizeAttributes = SequelizeAttributes.WithoutIndexes
 	): Promise<Chat[]> {
-		let user = await User.findOne({
-			where: {
-				userId: userId,
-			},
+		let chatIds = await ChatParticipant.findAll({
+			include: [
+				{
+					model: User,
+					where: {
+						userId,
+					},
+				},
+			],
+			attributes: ["chatId"],
 		});
+
 		let options = {
 			include: [
 				{
 					model: ChatParticipant,
 					include: [User],
-					where: {
-						chatParticipantId: user?._userId,
-					},
 				},
 				User,
 			],
+			where: {
+				_chatId: chatIds.map((c) => c.chatId),
+			},
 		};
 		let chats = await Chat.findAllSafe<Chat[]>(returns, options);
 		return chats;
@@ -39,7 +45,7 @@ export class ChatUtils {
 	static async getChat(
 		chatId: string | number,
 		returns: SequelizeAttributes = SequelizeAttributes.WithoutIndexes
-	): Promise<Chat | null> {
+	): Promise<Chat> {
 		let chatIdType = typeof chatId === "number" ? "_chatId" : "chatId";
 
 		let options = {
