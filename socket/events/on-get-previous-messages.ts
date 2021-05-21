@@ -11,7 +11,7 @@ export async function OnGetPreviousMessages(
 	try {
 		console.log(IOEvents.GET_PREVIOUS_MESSAGES);
 		let chatId = socket.roomsJoined[data.chatId];
-		let messages = await MessageUtils.getChatMessages(
+		let messages = await MessageUtils.getChatMessagesByChatId(
 			chatId,
 			data.lastMessageId
 		);

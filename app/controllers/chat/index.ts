@@ -23,7 +23,7 @@ export async function getAllUserChats(
 /**@urlParams  /:chatId */
 export async function getChat(req: Request, res: Response, next: NextFunction) {
 	try {
-		const chat = await ChatUtils.getChat(req.params.chatId);
+		const chat = await ChatUtils.getChatByUuid(req.params.chatId);
 		if (chat) return DataResponse(res, 200, chat);
 		throw new NotFoundError("No chat found");
 	} catch (err) {
@@ -36,6 +36,7 @@ export async function newChat(req: Request, res: Response, next: NextFunction) {
 	try {
 		let newChat = req.body;
 		newChat.createdBy = req.CurrentUser?.userId;
+		newChat.role = req.CurrentUser?.roleId;
 
 		const chat = await ChatUtils.addNewChat(newChat);
 		if (chat) return DataResponse(res, 200, chat);

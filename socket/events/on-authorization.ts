@@ -6,7 +6,6 @@ import { SocketData } from "../models";
 import {
 	OnJoinRoom,
 	OnJoinGlobalRoom,
-	OnGlobalRoomNotification,
 	OnGetPreviousMessages,
 	OnNewChatMessage,
 } from "./";
@@ -30,15 +29,15 @@ export async function OnAuthorization(socket: Socket, data: SocketData) {
 			//------------ATTACH EVENTS----------//
 
 			socket.on(IOEvents.JOIN_ROOM, (data) => OnJoinRoom(socket, data));
+
 			socket.on(IOEvents.JOIN_GLOBAL_ROOM, () =>
 				OnJoinGlobalRoom(socket)
 			);
-			socket.on(IOEvents.GLOBAL_ROOM_NOTIFICATION, (data) =>
-				OnGlobalRoomNotification(socket, data)
-			);
-			socket.on(IOEvents.NEW_CHAT_MESSAGE, (data) =>
+
+			socket.on(IOEvents.NEW_MESSAGE, (data) =>
 				OnNewChatMessage(socket, data)
 			);
+
 			socket.on(IOEvents.GET_PREVIOUS_MESSAGES, (data) =>
 				OnGetPreviousMessages(socket, data)
 			);

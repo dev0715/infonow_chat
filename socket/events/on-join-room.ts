@@ -9,7 +9,7 @@ export async function OnJoinRoom(socket: Socket, data: SocketRoom) {
 	try {
 		console.log(IOEvents.JOIN_ROOM);
 		if (!data.chatId) throw "chatId is required on Join Room";
-		let chat = await ChatUtils.getChat(
+		let chat = await ChatUtils.getChatByUuid(
 			data.chatId,
 			SequelizeAttributes.WithIndexes
 		);

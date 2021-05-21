@@ -9,31 +9,43 @@ import { User } from "../../../sequelize/models/User";
 import { ChatParticipant } from "../../../sequelize/models/ChatParticipant";
 import { Message } from "../../../sequelize/models/Message";
 import { Chat } from "../../../sequelize/models/Chat";
+import { Op } from "sequelize";
+import { ChatUtils } from "../chat";
 
 export class MessageUtils {
-	static async getChatMessages(
-		chatId: string | number,
-		lastMessageId: string | null = null,
-		returns: SequelizeAttributes = SequelizeAttributes.WithoutIndexes
+	private static async getChatMessages(
+		chatId: number,
+		lastMessageId: number = 0
 	): Promise<Message[]> {
-		if (typeof chatId === "string") {
-			let chat = await Chat.findOne({
-				where: {
-					chatId: chatId,
-				},
-			});
-			chatId = chat!._chatId;
-		}
-
-		let options = {
+		let messages = await Message.findAll({
 			include: [User],
-
 			where: {
 				chatId: chatId,
+				messageId: { [Op.gt]: lastMessageId },
 			},
-		};
-		let messages = await Message.findAllSafe<Message[]>(returns, options);
+			limit: 50,
+			order: [["messageId", "DESC"]],
+		});
+
 		return messages;
+	}
+
+	static async getChatMessagesByChatId(
+		chatId: number,
+		lastMessageId: number = 0
+	): Promise<Message[]> {
+		return await this.getChatMessages(chatId, lastMessageId);
+	}
+
+	static async getChatMessagesByChatUuid(
+		chatId: string,
+		lastMessageId: number = 0
+	): Promise<Message[]> {
+		let chat = await ChatUtils.getChatByUuid(
+			chatId,
+			SequelizeAttributes.WithIndexes
+		);
+		return await this.getChatMessages(chat._chatId, lastMessageId);
 	}
 
 	static async getMessage(
@@ -70,7 +82,7 @@ export class MessageUtils {
 			...message,
 		} as any);
 
-		return this.getMessage(newMessage._messageId, returns);
+		return this.getMessage(newMessage.messageId, returns);
 	}
 
 	private static async updateMessage(

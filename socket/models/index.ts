@@ -28,5 +28,5 @@ export interface NewChatMessage {
 
 export interface PreviousMessageData {
 	chatId: string;
-	lastMessageId: string | null;
+	lastMessageId: number;
 }
