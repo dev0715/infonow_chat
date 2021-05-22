@@ -8,6 +8,7 @@ import { NotFoundError } from "../../../sequelize/utils/errors";
 import { sequelize } from "../../../sequelize";
 import { Chat } from "../../../sequelize/models/Chat";
 import { ChatParticipant } from "../../../sequelize/models/ChatParticipant";
+import { Message } from "../../../sequelize/models/Message";
 
 export class ChatUtils {
 	static async getAllUserChats(
@@ -26,19 +27,28 @@ export class ChatUtils {
 			attributes: ["chatId"],
 		});
 
-		let options = {
+		let options: any = {
+			subQuery: false,
 			include: [
+				User,
 				{
 					model: ChatParticipant,
 					include: [User],
 				},
-				User,
+				{
+					model: Message,
+					include: [User],
+					order: [["messageId", "DESC"]],
+					limit: 1,
+					separate: true,
+				},
 			],
 			where: {
 				_chatId: chatIds.map((c) => c.chatId),
 			},
 		};
-		let chats = await Chat.findAllSafe<Chat[]>(returns, options);
+		//	let chats: Chat[] = await Chat.findAllSafe(returns, options);
+		let chats: Chat[] = await Chat.findAll(options);
 		return chats;
 	}
 
@@ -53,6 +63,13 @@ export class ChatUtils {
 				{
 					model: ChatParticipant,
 					include: [User],
+				},
+				{
+					model: Message,
+					include: [User],
+					order: [["messageId", "DESC"]],
+					limit: 1,
+					separate: true,
 				},
 			],
 			where: { [type]: key },
@@ -101,9 +118,12 @@ export class ChatUtils {
 			if (!participantUsers)
 				throw new NotFoundError("Participant not found");
 
+			console.log("GROUP_NAME", chat);
+
 			let newChat = await Chat.create({
 				type: chat.type,
 				createdBy: currentUser!._userId,
+				groupName: chat.groupName ?? null,
 				transaction,
 			} as any);
 

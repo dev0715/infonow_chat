@@ -14,6 +14,7 @@ export async function OnJoinRoom(socket: Socket, data: SocketRoom) {
 			SequelizeAttributes.WithIndexes
 		);
 		socket.roomsJoined[chat.chatId] = chat._chatId;
+		socket.join(chat.chatId);
 		socket.emit(IOEvents.JOIN_ROOM, { data: chat.chatId, success: true });
 	} catch (error) {
 		Logger.error(error);

@@ -10,10 +10,13 @@ export async function OnGetPreviousMessages(
 ) {
 	try {
 		console.log(IOEvents.GET_PREVIOUS_MESSAGES);
+
 		let chatId = socket.roomsJoined[data.chatId];
+		if (!chatId) throw "chatId not joined";
+
 		let messages = await MessageUtils.getChatMessagesByChatId(
 			chatId,
-			data.lastMessageId
+			data.dateTime
 		);
 
 		socket.emit(IOEvents.GET_PREVIOUS_MESSAGES, {

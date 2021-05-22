@@ -21,13 +21,22 @@ export async function OnNewChatMessage(socket: Socket, data: NewChatMessage) {
 		let newMessage = await MessageUtils.addNewMessage(msg);
 
 		socket.emit(IOEvents.NEW_MESSAGE, {
+			chatId: data.chatId,
 			messageId: data.messageId,
+			data: newMessage,
+			success: true,
+		});
+		console.log("CHECK ROOM ==>", socket.roomsJoined[data.chatId]);
+
+		socket.to(data.chatId).emit(IOEvents.NEW_MESSAGE, {
+			chatId: data.chatId,
 			data: newMessage,
 			success: true,
 		});
 	} catch (error) {
 		Logger.error(error);
 		socket.emit(IOEvents.NEW_MESSAGE, {
+			chatId: data.chatId,
 			messageId: data.messageId,
 			success: false,
 			error: error,

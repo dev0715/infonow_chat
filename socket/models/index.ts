@@ -1,3 +1,4 @@
+import { Moment } from "moment";
 import { Message } from "../../sequelize/models/Message";
 
 export interface SocketData {
@@ -22,11 +23,16 @@ export interface GlobalRoomNotification {
 
 export interface NewChatMessage {
 	chatId: string;
-	messageId: string;
-	message: Message | any;
+	messageId: number;
+	message: string;
 }
 
+export interface UpdateChatMessage {
+	chatId: string;
+	messageId: number;
+	dateTime: Moment;
+}
 export interface PreviousMessageData {
 	chatId: string;
-	lastMessageId: number;
+	dateTime: Moment;
 }

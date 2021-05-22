@@ -6,22 +6,21 @@ import {
 } from "../../../sequelize/validation-schema";
 import { SequelizeAttributes } from "../../../sequelize/types";
 import { User } from "../../../sequelize/models/User";
-import { ChatParticipant } from "../../../sequelize/models/ChatParticipant";
 import { Message } from "../../../sequelize/models/Message";
-import { Chat } from "../../../sequelize/models/Chat";
 import { Op } from "sequelize";
 import { ChatUtils } from "../chat";
+import moment, { Moment } from "moment";
 
 export class MessageUtils {
 	private static async getChatMessages(
 		chatId: number,
-		lastMessageId: number = 0
+		dateTime: Moment = moment().utc()
 	): Promise<Message[]> {
 		let messages = await Message.findAll({
 			include: [User],
 			where: {
 				chatId: chatId,
-				messageId: { [Op.gt]: lastMessageId },
+				createdAt: { [Op.lt]: dateTime },
 			},
 			limit: 50,
 			order: [["messageId", "DESC"]],
@@ -32,39 +31,30 @@ export class MessageUtils {
 
 	static async getChatMessagesByChatId(
 		chatId: number,
-		lastMessageId: number = 0
+		dateTime: Moment = moment().utc()
 	): Promise<Message[]> {
-		return await this.getChatMessages(chatId, lastMessageId);
+		return await this.getChatMessages(chatId, dateTime);
 	}
 
 	static async getChatMessagesByChatUuid(
 		chatId: string,
-		lastMessageId: number = 0
+		dateTime: Moment = moment().utc()
 	): Promise<Message[]> {
 		let chat = await ChatUtils.getChatByUuid(
 			chatId,
 			SequelizeAttributes.WithIndexes
 		);
-		return await this.getChatMessages(chat._chatId, lastMessageId);
+		return await this.getChatMessages(chat._chatId, dateTime);
 	}
 
 	static async getMessage(
-		messageId: string | number,
+		messageId: number,
 		returns: SequelizeAttributes = SequelizeAttributes.WithoutIndexes
 	): Promise<Message | null> {
-		let messageIdType =
-			typeof messageId === "number" ? "_messageId" : "messageId";
-
 		let options = {
-			include: [
-				{
-					model: ChatParticipant,
-					include: [User],
-				},
-				User,
-			],
+			include: [User],
 			where: {
-				[messageIdType]: messageId,
+				messageId: messageId,
 			},
 		};
 
@@ -82,10 +72,10 @@ export class MessageUtils {
 			...message,
 		} as any);
 
-		return this.getMessage(newMessage.messageId, returns);
+		return await this.getMessage(newMessage.messageId, returns);
 	}
 
-	private static async updateMessage(
+	static async updateMessage(
 		message: UpdateMessageSchemaType
 	): Promise<Message | any> {
 		await UpdateMessageSchema.validateAsync(message);
@@ -95,6 +85,6 @@ export class MessageUtils {
 				messageId: message.messageId,
 			},
 		});
-		return this.getMessage(message.messageId);
+		return await this.getMessage(message.messageId);
 	}
 }

@@ -9,6 +9,7 @@ import {
 	OnGetPreviousMessages,
 	OnNewChatMessage,
 } from "./";
+import { OnUpdateMessage } from "./on-update-message";
 
 async function authorizeUser(token: string) {
 	let user = await TokenCore.Verify(token);
@@ -17,6 +18,7 @@ async function authorizeUser(token: string) {
 
 export async function OnAuthorization(socket: Socket, data: SocketData) {
 	try {
+		console.log(`USER_AUTHORIZATION`, data.authorization);
 		if (data.authorization) {
 			let user = await authorizeUser(data.authorization);
 			socket.userId = user.userId;
@@ -36,6 +38,10 @@ export async function OnAuthorization(socket: Socket, data: SocketData) {
 
 			socket.on(IOEvents.NEW_MESSAGE, (data) =>
 				OnNewChatMessage(socket, data)
+			);
+
+			socket.on(IOEvents.UPDATE_MESSAGE, (data) =>
+				OnUpdateMessage(socket, data)
 			);
 
 			socket.on(IOEvents.GET_PREVIOUS_MESSAGES, (data) =>
