@@ -36,7 +36,7 @@ export const StartSocketServer = () => {
 		io.adapter(createAdapter({ pubClient, subClient }));
 
 		// make connection with user from server side
-		io.on("connection", (socket: Socket) => OnConnect(socket));
+		io.on("connection", (socket: Socket) => OnConnect(io, socket));
 
 		const port = socketConfig.port; // setting the port
 		const onLaunchServer = () => {

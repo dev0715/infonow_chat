@@ -7,6 +7,7 @@ export * from "./on-join-global-room";
 export * from "./on-new-chat-message";
 export * from "./on-get-previous-messages";
 export * from "./on-update-message";
+export * from "./on-add-participants";
 
 export const IOEvents = {
 	CONNECT: "CONNECT",
@@ -15,6 +16,7 @@ export const IOEvents = {
 	SET_LANGUAGE: "SET_LANGUAGE",
 	NEW_MESSAGE: "NEW_MESSAGE",
 	UPDATE_MESSAGE: "UPDATE_MESSAGE",
+	Add_Participant: "Add_Participant",
 	GET_PREVIOUS_MESSAGES: "GET_PREVIOUS_MESSAGES",
 	JOIN_ROOM: "JOIN_ROOM",
 	JOIN_GLOBAL_ROOM: "JOIN_GLOBAL_ROOM",

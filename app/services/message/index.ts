@@ -26,7 +26,7 @@ export class MessageUtils {
 			order: [["messageId", "DESC"]],
 		});
 
-		return messages;
+		return messages.reverse();
 	}
 
 	static async getChatMessagesByChatId(

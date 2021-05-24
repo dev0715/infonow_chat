@@ -36,3 +36,8 @@ export interface PreviousMessageData {
 	chatId: string;
 	dateTime: Moment;
 }
+
+export interface NewParticipant {
+	chatId: string;
+	participants: [];
+}

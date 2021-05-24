@@ -9,6 +9,8 @@ import {
 } from "../../../sequelize/validation-schema";
 import { BadRequestError } from "../../../sequelize/utils/errors";
 
+import { Op } from "sequelize";
+
 export class ChatParticipantUtils {
 	static async getAllChatParticipants(
 		_chatId: number,
@@ -44,7 +46,7 @@ export class ChatParticipantUtils {
 		return await this.getAllChatParticipants(chatId, returns);
 	}
 
-	static async addParticipantInChatGroup(
+	static async addParticipantsInChatGroup(
 		data: NewChatParticipantSchemaType,
 		returns: SequelizeAttributes = SequelizeAttributes.WithoutIndexes
 	): Promise<ChatParticipant[]> {
@@ -65,9 +67,25 @@ export class ChatParticipantUtils {
 
 			let users = await User.findAll({
 				where: {
-					userId: data.participants,
+					userId: { [Op.in]: data.participants },
 				},
 			});
+			if (users.length !== data.participants.length) {
+				throw new BadRequestError("Invalid Participant");
+			}
+
+			for (const u of users) {
+				if (
+					chat.chatParticipants.find((p) => p.user.userId == u.userId)
+				) {
+					console.log("DUPLICATE_PARTICIPANT_FOUND");
+					throw new BadRequestError(
+						"Duplicate participant not allowed"
+					);
+				}
+			}
+
+			console.log("Duplicate User Not found");
 
 			let participantsData: any = users.map((p) => {
 				return {

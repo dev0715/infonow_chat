@@ -4,11 +4,16 @@ import {
 } from "../../../sequelize/validation-schema";
 import { ChatSearchType, SequelizeAttributes } from "../../../sequelize/types";
 import { User } from "../../../sequelize/models/User";
-import { NotFoundError } from "../../../sequelize/utils/errors";
+import {
+	BadRequestError,
+	NotFoundError,
+} from "../../../sequelize/utils/errors";
 import { sequelize } from "../../../sequelize";
 import { Chat } from "../../../sequelize/models/Chat";
 import { ChatParticipant } from "../../../sequelize/models/ChatParticipant";
 import { Message } from "../../../sequelize/models/Message";
+
+import { Op } from "sequelize";
 
 export class ChatUtils {
 	static async getAllUserChats(
@@ -44,7 +49,7 @@ export class ChatUtils {
 				},
 			],
 			where: {
-				_chatId: chatIds.map((c) => c.chatId),
+				_chatId: { [Op.in]: chatIds.map((c) => c.chatId) },
 			},
 		};
 		//	let chats: Chat[] = await Chat.findAllSafe(returns, options);
@@ -99,12 +104,15 @@ export class ChatUtils {
 		try {
 			transaction = await sequelize.transaction();
 			await NewChatSchema.validateAsync(chat);
-
+			let userIds = [chat.createdBy, ...chat.participants];
 			let users = await User.findAll({
 				where: {
-					userId: [chat.createdBy, ...chat.participants],
+					userId: { [Op.in]: userIds },
 				},
 			});
+			if (users.length !== userIds.length) {
+				throw new BadRequestError("Invalid Participant");
+			}
 
 			let currentUser = users.find(
 				(x: User) => x.userId === chat.createdBy
@@ -117,8 +125,6 @@ export class ChatUtils {
 			if (!currentUser) throw new NotFoundError("User not found");
 			if (!participantUsers)
 				throw new NotFoundError("Participant not found");
-
-			console.log("GROUP_NAME", chat);
 
 			let newChat = await Chat.create({
 				type: chat.type,

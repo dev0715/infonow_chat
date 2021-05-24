@@ -1,4 +1,4 @@
-import { Socket } from "socket.io";
+import { Server, Socket } from "socket.io";
 import { IOEvents } from ".";
 import { User } from "../../sequelize";
 import { TokenCore } from "../../sequelize/middlewares/auth/token";
@@ -9,6 +9,7 @@ import {
 	OnGetPreviousMessages,
 	OnNewChatMessage,
 } from "./";
+import { OnAddParticipants } from "./on-add-participants";
 import { OnUpdateMessage } from "./on-update-message";
 
 async function authorizeUser(token: string) {
@@ -16,7 +17,11 @@ async function authorizeUser(token: string) {
 	return user as User;
 }
 
-export async function OnAuthorization(socket: Socket, data: SocketData) {
+export async function OnAuthorization(
+	io: Server,
+	socket: Socket,
+	data: SocketData
+) {
 	try {
 		console.log(`USER_AUTHORIZATION`, data.authorization);
 		if (data.authorization) {
@@ -46,6 +51,10 @@ export async function OnAuthorization(socket: Socket, data: SocketData) {
 
 			socket.on(IOEvents.GET_PREVIOUS_MESSAGES, (data) =>
 				OnGetPreviousMessages(socket, data)
+			);
+
+			socket.on(IOEvents.Add_Participant, (data) =>
+				OnAddParticipants(io, socket, data)
 			);
 		} else {
 			socket.emit(IOEvents.AUTHORIZATION, { success: false });
