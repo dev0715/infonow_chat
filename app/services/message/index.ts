@@ -10,6 +10,8 @@ import { Message } from "../../../sequelize/models/Message";
 import { Op } from "sequelize";
 import { ChatUtils } from "../chat";
 import moment, { Moment } from "moment";
+import { sequelize } from "../../../sequelize";
+import { ChatParticipant } from "../../../sequelize/models/ChatParticipant";
 
 export class MessageUtils {
 	private static async getChatMessages(
@@ -66,25 +68,49 @@ export class MessageUtils {
 		message: NewMessageSchemaType,
 		returns: SequelizeAttributes = SequelizeAttributes.WithoutIndexes
 	): Promise<Message | null> {
-		await NewMessageSchema.validateAsync(message);
+		var transaction;
+		try {
+			transaction = await sequelize.transaction();
+			await NewMessageSchema.validateAsync(message);
 
-		let newMessage = await Message.create({
-			...message,
-		} as any);
+			let newMessage = await Message.create({
+				...message,
+				transaction: transaction,
+			} as any);
 
-		return await this.getMessage(newMessage.messageId, returns);
-	}
+			let clearParticipants = await ChatParticipant.update(
+				{
+					seenAt: null,
+					deliveredAt: null,
+				} as any,
+				{
+					where: {
+						chatId: message.chatId,
+					},
+					transaction: transaction,
+				}
+			);
 
-	static async updateMessage(
-		message: UpdateMessageSchemaType
-	): Promise<Message | any> {
-		await UpdateMessageSchema.validateAsync(message);
+			let userUpdated = await ChatParticipant.update(
+				{
+					seenAt: moment().utc(),
+					deliveredAt: moment().utc(),
+				} as any,
+				{
+					where: {
+						chatId: message.chatId,
+						chatParticipantId: message.createdBy,
+					},
+					transaction: transaction,
+				}
+			);
 
-		let updatedMessage = await Message.update(message as any, {
-			where: {
-				messageId: message.messageId,
-			},
-		});
-		return await this.getMessage(message.messageId);
+			transaction.commit();
+			return await this.getMessage(newMessage.messageId, returns);
+		} catch (error) {
+			if (transaction) transaction.rollback();
+
+			throw error;
+		}
 	}
 }

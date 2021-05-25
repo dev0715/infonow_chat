@@ -1,11 +1,13 @@
-import { Socket } from "socket.io";
+import moment from "moment";
+import { Server, Socket } from "socket.io";
 import { ChatUtils } from "../../app/services";
+import { ChatParticipantUtils } from "../../app/services/chat-participant";
 import { SequelizeAttributes } from "../../sequelize/types";
 import { Logger } from "../../sequelize/utils/logger";
 import { SocketRoom } from "../models";
 import { IOEvents } from "./index";
 
-export async function OnJoinRoom(socket: Socket, data: SocketRoom) {
+export async function OnJoinRoom(io: Server, socket: Socket, data: SocketRoom) {
 	try {
 		console.log(IOEvents.JOIN_ROOM);
 		if (!data.chatId) throw "chatId is required on Join Room";
@@ -13,15 +15,30 @@ export async function OnJoinRoom(socket: Socket, data: SocketRoom) {
 			data.chatId,
 			SequelizeAttributes.WithIndexes
 		);
+
+		let participants =
+			await ChatParticipantUtils.setParticipantMessagesDelivered({
+				chatParticipantId: socket.user!._userId!,
+				chatId: chat._chatId,
+				deliveredAt: moment().utc(),
+			});
+
 		socket.roomsJoined[chat.chatId] = chat._chatId;
 		socket.join(chat.chatId);
-		socket.emit(IOEvents.JOIN_ROOM, { data: chat.chatId, success: true });
+
+		socket.emit(IOEvents.JOIN_ROOM, { chatId: chat.chatId, success: true });
+
+		io.sockets.in(data.chatId).emit(IOEvents.MESSAGES_DELIVERED, {
+			chatId: chat.chatId,
+			data: participants,
+			success: true,
+		});
 	} catch (error) {
 		Logger.error(error);
 		socket.emit(IOEvents.JOIN_ROOM, {
-			data: data.chatId,
+			chatId: data.chatId,
 			success: false,
-			error,
+			error: error,
 		});
 	}
 }

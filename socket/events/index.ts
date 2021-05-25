@@ -6,7 +6,6 @@ export * from "./on-join-room";
 export * from "./on-join-global-room";
 export * from "./on-new-chat-message";
 export * from "./on-get-previous-messages";
-export * from "./on-update-message";
 export * from "./on-add-participants";
 
 export const IOEvents = {
@@ -21,4 +20,6 @@ export const IOEvents = {
 	JOIN_ROOM: "JOIN_ROOM",
 	JOIN_GLOBAL_ROOM: "JOIN_GLOBAL_ROOM",
 	GLOBAL_ROOM_NOTIFICATION: "GLOBAL_ROOM_NOTIFICATION",
+	MESSAGES_DELIVERED: "MESSAGES_DELIVERED",
+	MESSAGES_SEEN: "MESSAGES_SEEN",
 };

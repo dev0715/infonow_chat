@@ -41,3 +41,14 @@ export interface NewParticipant {
 	chatId: string;
 	participants: [];
 }
+
+export interface MessageDelivered {
+	chatId: string;
+	deliveredAt: Moment;
+}
+
+export interface MessageSeen {
+	chatId: string;
+	deliveredAt?: Moment;
+	seenAt: Moment;
+}

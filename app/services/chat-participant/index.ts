@@ -6,15 +6,18 @@ import { sequelize } from "../../../sequelize";
 import {
 	NewChatParticipantSchemaType,
 	NewChatParticipantSchema,
+	ChatParticipantMessagesDeliveredSchemaType,
+	ChatParticipantMessagesSeenSchemaType,
 } from "../../../sequelize/validation-schema";
 import { BadRequestError } from "../../../sequelize/utils/errors";
 
 import { Op } from "sequelize";
+import moment from "moment";
 
 export class ChatParticipantUtils {
 	static async getAllChatParticipants(
 		_chatId: number,
-		returns: SequelizeAttributes
+		returns: SequelizeAttributes = SequelizeAttributes.WithoutIndexes
 	): Promise<ChatParticipant[]> {
 		let participants = await ChatParticipant.findAllSafe<ChatParticipant[]>(
 			returns,
@@ -104,6 +107,79 @@ export class ChatParticipantUtils {
 			await transaction.commit();
 
 			return this.getParticipantsByChatId(chat._chatId, returns);
+		} catch (error) {
+			if (transaction) transaction.rollback();
+			throw error;
+		}
+	}
+
+	static async setParticipantMessagesDelivered(
+		data: ChatParticipantMessagesDeliveredSchemaType,
+		returns: SequelizeAttributes = SequelizeAttributes.WithoutIndexes
+	): Promise<ChatParticipant[]> {
+		await ChatParticipant.update(data as any, {
+			where: {
+				chatId: data.chatId,
+				chatParticipantId: data.chatParticipantId,
+				deliveredAt: null,
+			},
+		});
+
+		return await this.getAllChatParticipants(data.chatId, returns);
+	}
+
+	static async setParticipantMessagesSeen(
+		data: ChatParticipantMessagesSeenSchemaType,
+		returns: SequelizeAttributes = SequelizeAttributes.WithoutIndexes
+	): Promise<ChatParticipant[]> {
+		await ChatParticipant.update(data as any, {
+			where: {
+				chatId: data.chatId,
+				chatParticipantId: data.chatParticipantId,
+				seenAt: null,
+			},
+		});
+		return await this.getAllChatParticipants(data.chatId, returns);
+	}
+
+	static async updateConnectedAndActiveParticipants(
+		chatId: number,
+		connectedUsers: number[],
+		activeUsers: number[],
+		returns: SequelizeAttributes = SequelizeAttributes.WithoutIndexes
+	): Promise<ChatParticipant[]> {
+		var transaction;
+		try {
+			transaction = await sequelize.transaction();
+			await ChatParticipant.update(
+				{
+					deliveredAt: moment().utc(),
+					seenAt: null,
+				} as any,
+				{
+					where: {
+						chatId: chatId,
+						chatParticipantId: { [Op.in]: connectedUsers },
+					},
+					transaction: transaction,
+				}
+			);
+
+			await ChatParticipant.update(
+				{
+					deliveredAt: moment().utc(),
+					seenAt: moment().utc(),
+				} as any,
+				{
+					where: {
+						chatId: chatId,
+						chatParticipantId: { [Op.in]: activeUsers },
+					},
+					transaction: transaction,
+				}
+			);
+			transaction.commit();
+			return await this.getParticipantsByChatId(chatId, returns);
 		} catch (error) {
 			if (transaction) transaction.rollback();
 			throw error;

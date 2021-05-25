@@ -10,7 +10,6 @@ import {
 	OnNewChatMessage,
 } from "./";
 import { OnAddParticipants } from "./on-add-participants";
-import { OnUpdateMessage } from "./on-update-message";
 
 async function authorizeUser(token: string) {
 	let user = await TokenCore.Verify(token);
@@ -35,22 +34,20 @@ export async function OnAuthorization(
 
 			//------------ATTACH EVENTS----------//
 
-			socket.on(IOEvents.JOIN_ROOM, (data) => OnJoinRoom(socket, data));
+			socket.on(IOEvents.JOIN_ROOM, (data) =>
+				OnJoinRoom(io, socket, data)
+			);
 
 			socket.on(IOEvents.JOIN_GLOBAL_ROOM, () =>
 				OnJoinGlobalRoom(socket)
 			);
 
 			socket.on(IOEvents.NEW_MESSAGE, (data) =>
-				OnNewChatMessage(socket, data)
-			);
-
-			socket.on(IOEvents.UPDATE_MESSAGE, (data) =>
-				OnUpdateMessage(socket, data)
+				OnNewChatMessage(io, socket, data)
 			);
 
 			socket.on(IOEvents.GET_PREVIOUS_MESSAGES, (data) =>
-				OnGetPreviousMessages(socket, data)
+				OnGetPreviousMessages(io, socket, data)
 			);
 
 			socket.on(IOEvents.Add_Participant, (data) =>

@@ -19,6 +19,7 @@ declare module "socket.io" {
 		locale: string;
 		userId?: string;
 		user?: User;
+		activeRoom?: string;
 		roomsJoined: {
 			[key: string]: number;
 		};
