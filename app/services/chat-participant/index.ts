@@ -12,7 +12,9 @@ import {
 import { BadRequestError } from "../../../sequelize/utils/errors";
 
 import { Op } from "sequelize";
-import moment from "moment";
+import moment, { Moment } from "moment";
+import { Message } from "../../../sequelize/models/Message";
+import { MessageUtils } from "../message";
 
 export class ChatParticipantUtils {
 	static async getAllChatParticipants(
@@ -53,16 +55,14 @@ export class ChatParticipantUtils {
 		data: NewChatParticipantSchemaType,
 		returns: SequelizeAttributes = SequelizeAttributes.WithoutIndexes
 	): Promise<ChatParticipant[]> {
-		var transaction;
 		try {
-			transaction = await sequelize.transaction();
 			await NewChatParticipantSchema.validateAsync(data);
 			let chat = await ChatUtils.getChatByUuid(
 				data.chatId,
 				SequelizeAttributes.WithIndexes
 			);
 
-			if (chat.user.userId !== data.userId) {
+			if (chat.user.userId !== data.userId || chat.type !== "group") {
 				throw new BadRequestError(
 					"You are not authorized to this operation"
 				);
@@ -73,6 +73,7 @@ export class ChatParticipantUtils {
 					userId: { [Op.in]: data.participants },
 				},
 			});
+
 			if (users.length !== data.participants.length) {
 				throw new BadRequestError("Invalid Participant");
 			}
@@ -98,17 +99,11 @@ export class ChatParticipantUtils {
 			});
 
 			let addedParticipants = await ChatParticipant.bulkCreate(
-				participantsData,
-				{
-					transaction,
-				}
+				participantsData
 			);
-
-			await transaction.commit();
 
 			return this.getParticipantsByChatId(chat._chatId, returns);
 		} catch (error) {
-			if (transaction) transaction.rollback();
 			throw error;
 		}
 	}
@@ -122,6 +117,7 @@ export class ChatParticipantUtils {
 				chatId: data.chatId,
 				chatParticipantId: data.chatParticipantId,
 				deliveredAt: null,
+				blockedAt: null,
 			},
 		});
 
@@ -137,6 +133,7 @@ export class ChatParticipantUtils {
 				chatId: data.chatId,
 				chatParticipantId: data.chatParticipantId,
 				seenAt: null,
+				blockedAt: null,
 			},
 		});
 		return await this.getAllChatParticipants(data.chatId, returns);
@@ -160,6 +157,7 @@ export class ChatParticipantUtils {
 					where: {
 						chatId: chatId,
 						chatParticipantId: { [Op.in]: connectedUsers },
+						blockedAt: null,
 					},
 					transaction: transaction,
 				}
@@ -174,6 +172,7 @@ export class ChatParticipantUtils {
 					where: {
 						chatId: chatId,
 						chatParticipantId: { [Op.in]: activeUsers },
+						blockedAt: null,
 					},
 					transaction: transaction,
 				}
@@ -184,5 +183,88 @@ export class ChatParticipantUtils {
 			if (transaction) transaction.rollback();
 			throw error;
 		}
+	}
+
+	/**
+	 *
+	 * @param {Number} chatId
+	 * @param {Number}participantId
+	 * @param {Moment} dateTime
+	 * @param {Moment}lastMessageTime
+	 * @param {SequelizeAttributes} returns
+	 * @returns Messages[]
+	 */
+	static async deleteParticipantChat(
+		chatId: number,
+		participantId: number,
+		lastMessageTime: Moment = moment(0).utc(),
+		returns: SequelizeAttributes = SequelizeAttributes.WithoutIndexes
+	): Promise<Message[]> {
+		await ChatParticipant.update(
+			{
+				lastMessageTime: lastMessageTime,
+			} as any,
+			{
+				where: {
+					chatId: chatId,
+					chatParticipantId: participantId,
+				},
+			}
+		);
+
+		return await MessageUtils.getChatMessagesByChatId(
+			participantId,
+			chatId
+		);
+	}
+
+	/**
+	 *
+	 * @param {Number} chatId
+	 * @param {Number}participantId
+	 * @returns ChatParticipant[]
+	 */
+	static async blockParticipantChat(
+		chatId: number,
+		participantId: number
+	): Promise<ChatParticipant[]> {
+		await ChatParticipant.update(
+			{
+				blockedAt: moment().utc(),
+			} as any,
+			{
+				where: {
+					chatId: chatId,
+					chatParticipantId: participantId,
+				},
+			}
+		);
+
+		return await this.getParticipantsByChatId(chatId);
+	}
+
+	/**
+	 *
+	 * @param {number} chatId
+	 * @param {number}participantId
+	 * @returns ChatParticipant[]
+	 */
+	static async unBlockParticipantChat(
+		chatId: number,
+		participantId: number
+	): Promise<ChatParticipant[]> {
+		await ChatParticipant.update(
+			{
+				blockedAt: null,
+			} as any,
+			{
+				where: {
+					chatId: chatId,
+					chatParticipantId: participantId,
+				},
+			}
+		);
+
+		return await this.getParticipantsByChatId(chatId);
 	}
 }

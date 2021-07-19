@@ -1,8 +1,6 @@
 import {
 	NewMessageSchema,
-	UpdateMessageSchema,
 	NewMessageSchemaType,
-	UpdateMessageSchemaType,
 } from "../../../sequelize/validation-schema";
 import { SequelizeAttributes } from "../../../sequelize/types";
 import { User } from "../../../sequelize/models/User";
@@ -10,35 +8,80 @@ import { Message } from "../../../sequelize/models/Message";
 import { Op } from "sequelize";
 import { ChatUtils } from "../chat";
 import moment, { Moment } from "moment";
-import { sequelize } from "../../../sequelize";
+import { Document, sequelize } from "../../../sequelize";
 import { ChatParticipant } from "../../../sequelize/models/ChatParticipant";
+import { ValidationError } from "../../../sequelize/utils/errors";
+import { Logger } from "../../../sequelize/utils/logger";
 
 export class MessageUtils {
+	/**
+	 *
+	 * @param {number} chatId
+	 * @param {Moment} dateTime
+	 * @param {Moment} lastMessageTime
+	 * @param {Moment} blockedAt
+	 * @returns
+	 */
 	private static async getChatMessages(
 		chatId: number,
-		dateTime: Moment = moment().utc()
+		dateTime: Moment = moment().utc(),
+		lastMessageTime: string,
+		blockedAt: Moment = moment().utc()
 	): Promise<Message[]> {
+		lastMessageTime = lastMessageTime
+			? lastMessageTime
+			: "2000-02-02 12:00:00";
 		let messages = await Message.findAll({
-			include: [User],
+			include: [User, Document],
 			where: {
 				chatId: chatId,
-				createdAt: { [Op.lt]: dateTime },
+				createdAt: {
+					[Op.and]: [
+						{ [Op.lt]: dateTime },
+						{ [Op.gt]: lastMessageTime },
+						{ [Op.lt]: blockedAt },
+					],
+				},
 			},
-			limit: 50,
+			limit: 25,
 			order: [["messageId", "DESC"]],
 		});
 
 		return messages.reverse();
 	}
 
+	/**
+	 * @param {Number}userId
+	 * @param {Number}chatId
+	 * @param {Moment}dateTime
+	 * @param {Moment}lastMessageTime
+	 * @returns Message[]
+	 */
 	static async getChatMessagesByChatId(
+		userId: number,
 		chatId: number,
 		dateTime: Moment = moment().utc()
 	): Promise<Message[]> {
-		return await this.getChatMessages(chatId, dateTime);
+		let chat = await ChatUtils.getChatById(
+			chatId,
+			SequelizeAttributes.WithIndexes
+		);
+		let user = chat.chatParticipants.find((x) => x.user._userId === userId);
+
+		if (!user) {
+			throw new ValidationError("invalid participant");
+		}
+
+		return await this.getChatMessages(
+			chatId,
+			dateTime,
+			user.lastMessageTime as any,
+			user.blockedAt ? moment(user.blockedAt) : moment().utc()
+		);
 	}
 
 	static async getChatMessagesByChatUuid(
+		userId: string,
 		chatId: string,
 		dateTime: Moment = moment().utc()
 	): Promise<Message[]> {
@@ -46,7 +89,18 @@ export class MessageUtils {
 			chatId,
 			SequelizeAttributes.WithIndexes
 		);
-		return await this.getChatMessages(chat._chatId, dateTime);
+		let user = chat.chatParticipants.find((x) => x.user.userId === userId);
+
+		if (!user) {
+			throw new ValidationError("invalid participant");
+		}
+
+		return await this.getChatMessages(
+			chat._chatId,
+			dateTime,
+			user.lastMessageTime as any,
+			user.blockedAt ? moment(user.blockedAt) : moment().utc()
+		);
 	}
 
 	static async getMessage(
@@ -54,7 +108,7 @@ export class MessageUtils {
 		returns: SequelizeAttributes = SequelizeAttributes.WithoutIndexes
 	): Promise<Message | null> {
 		let options = {
-			include: [User],
+			include: [User, Document],
 			where: {
 				messageId: messageId,
 			},

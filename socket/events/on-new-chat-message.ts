@@ -1,11 +1,14 @@
 import { Server, Socket } from "socket.io";
 import { ChatParticipantUtils } from "../../app/services/chat-participant";
 import { MessageUtils } from "../../app/services/message";
+import { Document } from "../../sequelize";
+import { SequelizeAttributes } from "../../sequelize/types";
+import { ValidationError } from "../../sequelize/utils/errors";
 import { Logger } from "../../sequelize/utils/logger";
 import { NewMessageSchemaType } from "../../sequelize/validation-schema";
 import { NewChatMessage } from "../models";
 import { IOEvents } from "./index";
-import { getClientsInRoom, isUserJoined } from "./utils";
+import { getClientsInRoom } from "./utils";
 
 async function findAndUpdateParticipants(
 	io: Server,
@@ -54,20 +57,34 @@ export async function OnNewChatMessage(
 	data: NewChatMessage
 ) {
 	try {
-		console.log(IOEvents.NEW_MESSAGE);
+		console.log(IOEvents.NEW_MESSAGE, data);
 
-		if (!data.chatId || !data.messageId || !data.message) {
-			throw "New Message data is not complete";
+		if (!data.chatId || !data.message) {
+			throw new ValidationError("New Message data is not complete");
+		}
+		if (!socket.roomsJoined[data.chatId]) {
+			throw new ValidationError("No chat found");
 		}
 		let msg: NewMessageSchemaType = {
 			chatId: socket.roomsJoined[data.chatId],
 			content: data.message,
 			createdBy: socket.user!._userId!,
 		};
+		if (data.documentId) {
+			let document = await Document.findOneSafe<Document>(
+				SequelizeAttributes.WithIndexes,
+				{
+					where: {
+						documentId: data.documentId,
+					},
+				}
+			);
+			if (document) msg.documentId = document._documentId;
+		}
 
 		let newMessage = await MessageUtils.addNewMessage(msg);
 
-		socket.emit(IOEvents.UPDATE_MESSAGE, {
+		socket.emit(IOEvents.NEW_MESSAGE, {
 			chatId: data.chatId,
 			messageId: data.messageId,
 			data: newMessage,

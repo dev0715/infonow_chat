@@ -1,5 +1,6 @@
 import { Server, Socket } from "socket.io";
 import { ChatParticipantUtils } from "../../app/services/chat-participant";
+import { ValidationError } from "../../sequelize/utils/errors";
 import { Logger } from "../../sequelize/utils/logger";
 import { NewChatParticipantSchemaType } from "../../sequelize/validation-schema";
 import { NewParticipant } from "../models";
@@ -11,10 +12,10 @@ export async function OnAddParticipants(
 	data: NewParticipant
 ) {
 	try {
-		console.log(IOEvents.Add_Participant);
+		console.log(IOEvents.ADD_PARTICIPANT);
 
 		if (!data.chatId || !data.participants) {
-			throw "Add Participants data is not complete";
+			throw new ValidationError("Add Participants data is not complete");
 		}
 		let participantData: NewChatParticipantSchemaType = {
 			chatId: data.chatId,
@@ -27,7 +28,7 @@ export async function OnAddParticipants(
 				participantData
 			);
 
-		io.sockets.in(data.chatId).emit(IOEvents.Add_Participant, {
+		io.sockets.in(data.chatId).emit(IOEvents.ADD_PARTICIPANT, {
 			chatId: data.chatId,
 			data: participants,
 			success: true,
@@ -41,7 +42,7 @@ export async function OnAddParticipants(
 		});
 	} catch (error) {
 		Logger.error(error);
-		socket.emit(IOEvents.Add_Participant, {
+		socket.emit(IOEvents.ADD_PARTICIPANT, {
 			chatId: data.chatId,
 			success: false,
 			error: error,

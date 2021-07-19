@@ -11,6 +11,15 @@ export interface SocketData {
 	[key: string]: any;
 }
 
+export interface MessageDeleteData {
+	chatId: string;
+	lastMessageTime: Moment;
+}
+
+export interface BlockChatData {
+	chatId: string;
+}
+
 export interface SocketRoom {
 	chatId: string;
 }
@@ -25,6 +34,7 @@ export interface NewChatMessage {
 	chatId: string;
 	messageId: number;
 	message: string;
+	documentId: string;
 }
 
 export interface UpdateChatMessage {
@@ -35,6 +45,7 @@ export interface UpdateChatMessage {
 export interface PreviousMessageData {
 	chatId: string;
 	dateTime: Moment;
+	lastMessageTime: Moment;
 }
 
 export interface NewParticipant {

@@ -47,6 +47,7 @@ export async function Start(): Promise<boolean> {
 			LogType.Info,
 		];
 	} catch (err) {
+		console.log("START_ERROR", err);
 		Logger.fatalError(
 			"* -------------------------------------------------------- *"
 		);

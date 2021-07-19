@@ -8,7 +8,6 @@ import {
 	BadRequestError,
 	NotFoundError,
 } from "../../../sequelize/utils/errors";
-import { sequelize } from "../../../sequelize";
 import { Chat } from "../../../sequelize/models/Chat";
 import { ChatParticipant } from "../../../sequelize/models/ChatParticipant";
 import { Message } from "../../../sequelize/models/Message";
@@ -100,19 +99,18 @@ export class ChatUtils {
 		chat: NewChatSchemaType,
 		returns: SequelizeAttributes = SequelizeAttributes.WithoutIndexes
 	): Promise<Chat | null> {
-		var transaction;
 		try {
-			transaction = await sequelize.transaction();
 			await NewChatSchema.validateAsync(chat);
+
 			let userIds = [chat.createdBy, ...chat.participants];
 			let users = await User.findAll({
 				where: {
 					userId: { [Op.in]: userIds },
 				},
+				attributes: ["_userId", "userId"],
 			});
-			if (users.length !== userIds.length) {
+			if (users.length !== userIds.length)
 				throw new BadRequestError("Invalid Participant");
-			}
 
 			let currentUser = users.find(
 				(x: User) => x.userId === chat.createdBy
@@ -123,41 +121,35 @@ export class ChatUtils {
 			);
 
 			if (!currentUser) throw new NotFoundError("User not found");
-			if (!participantUsers)
+			if (participantUsers.length <= 0)
 				throw new NotFoundError("Participant not found");
-
-			let newChat = await Chat.create({
-				type: chat.type,
-				createdBy: currentUser!._userId,
-				groupName: chat.groupName ?? null,
-				transaction,
-			} as any);
 
 			let participantsData: any = [
 				{
-					chatId: newChat._chatId,
 					chatParticipantId: currentUser!._userId,
 				},
 				...participantUsers.map((p) => {
 					return {
-						chatId: newChat._chatId,
 						chatParticipantId: p!._userId,
 					};
 				}),
 			];
 
-			let addedParticipants = await ChatParticipant.bulkCreate(
-				participantsData,
+			let newChat = await Chat.create(
 				{
-					transaction,
+					type: chat.type,
+					createdBy: currentUser!._userId,
+					groupName: chat.groupName ?? null,
+					groupPhoto: chat.groupPhoto ?? null,
+					chatParticipants: participantsData,
+				} as any,
+				{
+					include: [ChatParticipant],
 				}
 			);
 
-			await transaction.commit();
-
 			return this.getChatById(newChat._chatId, returns);
 		} catch (error) {
-			if (transaction) await transaction.rollback();
 			throw error;
 		}
 	}

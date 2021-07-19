@@ -2,7 +2,20 @@
 import { NextFunction, Request, Response } from "express";
 import { DataResponse } from "../../../sequelize/utils/http-response";
 import { ChatUtils } from "../../services";
-import { NotFoundError } from "../../../sequelize/utils/errors";
+import {
+	BadRequestError,
+	NotFoundError,
+} from "../../../sequelize/utils/errors";
+import fs from "fs";
+import { v4 } from "uuid";
+import { Configurations } from "../../../configs/config-main";
+import { ChatParticipantUtils } from "../../services/chat-participant";
+import {
+	NewChatParticipantSchemaType,
+	NewChatSchemaType,
+} from "../../../sequelize/validation-schema";
+
+const chatAvatar = Configurations.constants.chatAvatarUpload;
 
 /**@urlParams  /:userId */
 export async function getAllUserChats(
@@ -34,14 +47,53 @@ export async function getChat(req: Request, res: Response, next: NextFunction) {
 
 export async function newChat(req: Request, res: Response, next: NextFunction) {
 	try {
-		let newChat = req.body;
-		newChat.createdBy = req.CurrentUser?.userId;
-		newChat.role = req.CurrentUser?.roleId;
+		let fileName = null;
+
+		if (req.file) {
+			let file = req.file;
+			let fileExts = file.originalname.split(".");
+			let ext = fileExts[fileExts.length - 1];
+			fileName = `${v4()}.${ext}`;
+			//TODO :- UNCOMMENT TO WRITE FILE AT PUBLIC PATH
+			//	fs.writeFileSync(`${chatAvatar}/${fileName}`, file.buffer);
+		}
+
+		let newChat = {
+			...req.body,
+			createdBy: req.CurrentUser?.userId,
+			role: req.CurrentUser?.roleId,
+		} as NewChatSchemaType;
+
+		if (newChat.type == "group") newChat.groupPhoto = fileName!;
 
 		const chat = await ChatUtils.addNewChat(newChat);
 		if (chat) return DataResponse(res, 200, chat);
 
 		throw new NotFoundError("Failed to add chat, try again");
+	} catch (err) {
+		// Handle Exception
+		return next(err);
+	}
+}
+
+export async function addParticipants(
+	req: Request,
+	res: Response,
+	next: NextFunction
+) {
+	try {
+		let participantData: NewChatParticipantSchemaType = {
+			...req.body,
+			userId: req.CurrentUser?.userId,
+		};
+
+		const participants =
+			await ChatParticipantUtils.addParticipantsInChatGroup(
+				participantData
+			);
+		if (participants.length > 0)
+			return DataResponse(res, 200, participants);
+		throw new NotFoundError("Failed to add participants, try again");
 	} catch (err) {
 		// Handle Exception
 		return next(err);

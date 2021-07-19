@@ -10,6 +10,9 @@ import {
 	OnNewChatMessage,
 } from "./";
 import { OnAddParticipants } from "./on-add-participants";
+import { OnBlockChat } from "./on-block-chat";
+import { OnMessagesDelete } from "./on-messages-delete";
+import { OnUnBlockChat } from "./on-unblock-chat";
 
 async function authorizeUser(token: string) {
 	let user = await TokenCore.Verify(token);
@@ -50,8 +53,20 @@ export async function OnAuthorization(
 				OnGetPreviousMessages(io, socket, data)
 			);
 
-			socket.on(IOEvents.Add_Participant, (data) =>
+			socket.on(IOEvents.ADD_PARTICIPANT, (data) =>
 				OnAddParticipants(io, socket, data)
+			);
+
+			socket.on(IOEvents.MESSAGES_DELETE, (data) =>
+				OnMessagesDelete(socket, data)
+			);
+
+			socket.on(IOEvents.BLOCK_CHAT, (data) =>
+				OnBlockChat(io, socket, data)
+			);
+
+			socket.on(IOEvents.UNBLOCK_CHAT, (data) =>
+				OnUnBlockChat(io, socket, data)
 			);
 		} else {
 			socket.emit(IOEvents.AUTHORIZATION, { success: false });

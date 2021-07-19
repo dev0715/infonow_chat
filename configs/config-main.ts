@@ -11,13 +11,17 @@ export namespace Configurations {
 
 	export const AuthorizationConfigurations = {
 		private_key: process.env.AUTHORIZATION_PRIVATE_KEY,
-		token_life: parseInt(process.env.AUTHORIZATION_TOKEN_LIFE ?? "0") * 60 * 60 * 1000, // Converting Hours to Milliseconds
+		token_life:
+			parseInt(process.env.AUTHORIZATION_TOKEN_LIFE ?? "0") *
+			60 *
+			60 *
+			1000, // Converting Hours to Milliseconds
 	};
 
 	export const RedisServerConfiguration = {
 		host: process.env.REDIS_SERVER_HOST!,
-		port: parseInt(process.env.REDIS_SERVER_PORT!)
-	}
+		port: parseInt(process.env.REDIS_SERVER_PORT!),
+	};
 
 	export const HTTPServerConfigurations = {
 		env: process.env.HTTP_SERVER_ENV,
@@ -51,5 +55,9 @@ export namespace Configurations {
 
 	export const ErrorReportingConfigurations = {
 		email: process.env.ERROR_REPORTING_EMAIL,
+	};
+
+	export const constants = {
+		chatAvatarUpload: `${process.env.CHAT_AVATAR_UPLOAD}`,
 	};
 }
