@@ -33,7 +33,11 @@ export const StartSocketServer = () => {
 		app.use(cors());
 		let server = http.createServer(app);
 		Logger.infoBright("* Attempting to start Socket Server");
-		let io = new Server(server);
+		let io = new Server(server, {
+			cors: {
+				origin: "*",
+			},
+		});
 		const pubClient = new RedisClient(redisConfig);
 		const subClient = pubClient.duplicate();
 		io.adapter(createAdapter({ pubClient, subClient }));
