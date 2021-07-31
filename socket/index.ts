@@ -9,6 +9,7 @@ import { Logger } from "../sequelize/utils/logger";
 import { RedisClient } from "redis";
 import chalk from "chalk";
 import { User } from "../sequelize";
+import cors from "cors";
 
 const socketConfig = Configs!.WSServerConfigurations;
 const redisConfig = Configs!.RedisServerConfiguration;
@@ -29,6 +30,7 @@ declare module "socket.io" {
 export const StartSocketServer = () => {
 	try {
 		let app = express();
+		app.use(cors());
 		let server = http.createServer(app);
 		Logger.infoBright("* Attempting to start Socket Server");
 		let io = new Server(server);
