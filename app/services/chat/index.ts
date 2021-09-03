@@ -124,6 +124,9 @@ export class ChatUtils {
 			if (participantUsers.length <= 0)
 				throw new NotFoundError("Participant not found");
 
+			if (participantUsers.length != chat.participants.length)
+				throw new NotFoundError("User not found");
+
 			let participantsData: any = [
 				{
 					chatParticipantId: currentUser!._userId,
@@ -135,20 +138,47 @@ export class ChatUtils {
 				}),
 			];
 
-			let newChat = await Chat.create(
-				{
-					type: chat.type,
-					createdBy: currentUser!._userId,
-					groupName: chat.groupName ?? null,
-					groupPhoto: chat.groupPhoto ?? null,
-					chatParticipants: participantsData,
-				} as any,
-				{
-					include: [ChatParticipant],
-				}
-			);
+			let chatData = {
+				type: chat.type,
+				createdBy: currentUser!._userId,
+				groupName: chat.groupName ?? null,
+				groupPhoto: chat.groupPhoto ?? null,
+				chatParticipants: participantsData,
+			} as any;
 
-			return this.getChatById(newChat._chatId, returns);
+			if (chat.type == "chat") {
+				let exChat = (await Chat.findOrCreateSafe(
+					SequelizeAttributes.WithIndexes,
+					{
+						defaults: chatData,
+						include: [
+							User,
+							{
+								model: ChatParticipant,
+								where: {
+									chatParticipantId: {
+										[Op.and]: [
+											...users!.map((u) => u!._userId!),
+										],
+									},
+								},
+							},
+						],
+						where: {
+							type: "chat",
+						},
+					}
+				)) as any;
+
+				if (exChat.length > 0)
+					return this.getChatById(exChat[0]._chatId, returns);
+			}
+
+			let groupChat = await Chat.create(chatData as any, {
+				include: [ChatParticipant],
+			});
+
+			return this.getChatById(groupChat._chatId, returns);
 		} catch (error) {
 			throw error;
 		}

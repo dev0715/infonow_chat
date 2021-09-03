@@ -47,24 +47,11 @@ export async function getChat(req: Request, res: Response, next: NextFunction) {
 
 export async function newChat(req: Request, res: Response, next: NextFunction) {
 	try {
-		let fileName = null;
-
-		if (req.file) {
-			let file = req.file;
-			let fileExts = file.originalname.split(".");
-			let ext = fileExts[fileExts.length - 1];
-			fileName = `${v4()}.${ext}`;
-			//TODO :- UNCOMMENT TO WRITE FILE AT PUBLIC PATH
-			//	fs.writeFileSync(`${chatAvatar}/${fileName}`, file.buffer);
-		}
-
 		let newChat = {
 			...req.body,
 			createdBy: req.CurrentUser?.userId,
 			role: req.CurrentUser?.roleId,
 		} as NewChatSchemaType;
-
-		if (newChat.type == "group") newChat.groupPhoto = fileName!;
 
 		const chat = await ChatUtils.addNewChat(newChat);
 		if (chat) return DataResponse(res, 200, chat);
