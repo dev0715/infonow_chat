@@ -7,7 +7,7 @@ const router = express.Router();
 
 router.get(
 	`/:userId(${UUID_REGEX_ROUTE})/chats`,
-	AuthorizeUtil.AuthorizeAccessIfAdminOrSuperAdminOnly,
+	AuthorizeUtil.AuthorizeAdminOrSelf,
 	ChatsCtrl.getAllUserChats
 );
 
