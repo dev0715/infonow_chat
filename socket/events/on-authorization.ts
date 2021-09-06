@@ -1,5 +1,5 @@
 import { Server, Socket } from "socket.io";
-import { IOEvents } from ".";
+import { IOEvents, OnRemoveParticipants } from ".";
 import { User } from "../../sequelize";
 import { TokenCore } from "../../sequelize/middlewares/auth/token";
 import { SocketData } from "../models";
@@ -11,6 +11,7 @@ import {
 } from "./";
 import { OnAddParticipants } from "./on-add-participants";
 import { OnBlockChat } from "./on-block-chat";
+import { OnLeaveRoom } from "./on-leave-room";
 import { OnMessagesDelete } from "./on-messages-delete";
 import { OnUnBlockChat } from "./on-unblock-chat";
 
@@ -41,6 +42,8 @@ export async function OnAuthorization(
 				OnJoinRoom(io, socket, data)
 			);
 
+			socket.on(IOEvents.LEAVE_ROOM, (data) => OnLeaveRoom(socket, data));
+
 			socket.on(IOEvents.JOIN_GLOBAL_ROOM, () =>
 				OnJoinGlobalRoom(socket)
 			);
@@ -55,6 +58,10 @@ export async function OnAuthorization(
 
 			socket.on(IOEvents.ADD_PARTICIPANT, (data) =>
 				OnAddParticipants(io, socket, data)
+			);
+
+			socket.on(IOEvents.REMOVE_PARTICIPANT, (data) =>
+				OnRemoveParticipants(io, socket, data)
 			);
 
 			socket.on(IOEvents.MESSAGES_DELETE, (data) =>

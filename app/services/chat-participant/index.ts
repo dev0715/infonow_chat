@@ -15,6 +15,7 @@ import { Op } from "sequelize";
 import moment, { Moment } from "moment";
 import { Message } from "../../../sequelize/models/Message";
 import { MessageUtils } from "../message";
+import { Chat } from "../../../sequelize/models/Chat";
 
 export class ChatParticipantUtils {
 	static async getAllChatParticipants(
@@ -55,6 +56,91 @@ export class ChatParticipantUtils {
 		data: NewChatParticipantSchemaType,
 		returns: SequelizeAttributes = SequelizeAttributes.WithoutIndexes
 	): Promise<ChatParticipant[]> {
+		var transaction;
+		try {
+			transaction = await sequelize.transaction();
+			await NewChatParticipantSchema.validateAsync(data);
+			let chat = await ChatUtils.getChatByUuid(
+				data.chatId,
+				SequelizeAttributes.WithIndexes
+			);
+
+			if (chat.user.userId !== data.userId || chat.type !== "group") {
+				throw new BadRequestError(
+					"You are not authorized to this operation"
+				);
+			}
+
+			let users = await User.findAllSafe<User[]>(
+				SequelizeAttributes.WithIndexes,
+				{
+					where: {
+						userId: { [Op.in]: data.participants },
+					},
+				} as any
+			);
+
+			if (users.length !== data.participants.length) {
+				throw new BadRequestError("Invalid Participant");
+			}
+
+			let newParticipants = [];
+			let existingParticipant = [];
+			for (const u of users) {
+				let chatUser = chat.chatParticipants.find(
+					(p) => p.user.userId == u.userId
+				);
+				if (chatUser && !chatUser.chatParticipantStatus) {
+					existingParticipant.push(u);
+				} else if (!chatUser) {
+					newParticipants.push(u);
+				} else {
+					throw new BadRequestError(
+						"Duplicate participant not allowed"
+					);
+				}
+			}
+
+			let newParticipantsData: any = newParticipants.map((p) => {
+				return {
+					chatId: chat._chatId,
+					chatParticipantId: p!._userId,
+				};
+			});
+			if (existingParticipant.length)
+				await ChatParticipant.update(
+					{
+						chatParticipantStatus: 1,
+					} as any,
+					{
+						where: {
+							chatId: chat._chatId,
+							chatParticipantId: {
+								[Op.in]: existingParticipant.map(
+									(p) => p._userId
+								),
+							},
+						},
+						transaction: transaction,
+					} as any
+				);
+			if (newParticipants.length)
+				await ChatParticipant.bulkCreate(newParticipantsData, {
+					transaction: transaction,
+				});
+
+			transaction.commit();
+			return this.getParticipantsByChatId(chat._chatId, returns);
+		} catch (error) {
+			if (transaction) transaction.rollback();
+			throw error;
+		}
+	}
+
+	static async removeParticipantsInChatGroup(
+		data: NewChatParticipantSchemaType,
+		returns: SequelizeAttributes = SequelizeAttributes.WithoutIndexes
+	): Promise<ChatParticipant[]> {
 		try {
 			await NewChatParticipantSchema.validateAsync(data);
 			let chat = await ChatUtils.getChatByUuid(
@@ -68,38 +154,31 @@ export class ChatParticipantUtils {
 				);
 			}
 
-			let users = await User.findAll({
-				where: {
-					userId: { [Op.in]: data.participants },
-				},
-			});
+			let users = await User.findAllSafe<User[]>(
+				SequelizeAttributes.WithIndexes,
+				{
+					where: {
+						userId: { [Op.in]: data.participants },
+					},
+				} as any
+			);
 
 			if (users.length !== data.participants.length) {
 				throw new BadRequestError("Invalid Participant");
 			}
 
-			for (const u of users) {
-				if (
-					chat.chatParticipants.find((p) => p.user.userId == u.userId)
-				) {
-					console.log("DUPLICATE_PARTICIPANT_FOUND");
-					throw new BadRequestError(
-						"Duplicate participant not allowed"
-					);
-				}
-			}
-
-			console.log("Duplicate User Not found");
-
-			let participantsData: any = users.map((p) => {
-				return {
-					chatId: chat._chatId,
-					chatParticipantId: p!._userId,
-				};
-			});
-
-			let addedParticipants = await ChatParticipant.bulkCreate(
-				participantsData
+			await ChatParticipant.update(
+				{
+					chatParticipantStatus: 0,
+				} as any,
+				{
+					where: {
+						chatId: chat._chatId,
+						chatParticipantId: {
+							[Op.in]: users.map((u) => u._userId),
+						},
+					},
+				} as any
 			);
 
 			return this.getParticipantsByChatId(chat._chatId, returns);
@@ -160,7 +239,7 @@ export class ChatParticipantUtils {
 						blockedAt: null,
 					},
 					transaction: transaction,
-				}
+				} as any
 			);
 
 			await ChatParticipant.update(
@@ -175,7 +254,7 @@ export class ChatParticipantUtils {
 						blockedAt: null,
 					},
 					transaction: transaction,
-				}
+				} as any
 			);
 			transaction.commit();
 			return await this.getParticipantsByChatId(chatId, returns);

@@ -28,6 +28,9 @@ export class ChatUtils {
 					},
 				},
 			],
+			where: {
+				chatParticipantStatus: 1,
+			},
 			attributes: ["chatId"],
 		});
 
@@ -108,7 +111,7 @@ export class ChatUtils {
 					userId: { [Op.in]: userIds },
 				},
 				attributes: ["_userId", "userId"],
-			});
+			} as any);
 			if (users.length !== userIds.length)
 				throw new BadRequestError("Invalid Participant");
 
@@ -167,7 +170,7 @@ export class ChatUtils {
 						where: {
 							type: "chat",
 						},
-					}
+					} as any
 				)) as any;
 
 				if (exChat.length > 0)

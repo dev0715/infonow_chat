@@ -6,16 +6,18 @@ import { NewChatParticipantSchemaType } from "../../sequelize/validation-schema"
 import { UpdateParticipants } from "../models";
 import { IOEvents } from "./index";
 
-export async function OnAddParticipants(
+export async function OnRemoveParticipants(
 	io: Server,
 	socket: Socket,
 	data: UpdateParticipants
 ) {
 	try {
-		console.log(IOEvents.ADD_PARTICIPANT);
+		console.log(IOEvents.REMOVE_PARTICIPANT);
 
 		if (!data.chatId || !data.participants) {
-			throw new ValidationError("Add Participants data is not complete");
+			throw new ValidationError(
+				"Remove Participants data is not complete"
+			);
 		}
 		let participantData: NewChatParticipantSchemaType = {
 			chatId: data.chatId,
@@ -24,11 +26,11 @@ export async function OnAddParticipants(
 		};
 
 		let participants =
-			await ChatParticipantUtils.addParticipantsInChatGroup(
+			await ChatParticipantUtils.removeParticipantsInChatGroup(
 				participantData
 			);
 
-		io.sockets.in(data.chatId).emit(IOEvents.ADD_PARTICIPANT, {
+		io.sockets.in(data.chatId).emit(IOEvents.REMOVE_PARTICIPANT, {
 			chatId: data.chatId,
 			data: participants,
 			success: true,
@@ -42,7 +44,7 @@ export async function OnAddParticipants(
 		});
 	} catch (error) {
 		Logger.error(error);
-		socket.emit(IOEvents.ADD_PARTICIPANT, {
+		socket.emit(IOEvents.REMOVE_PARTICIPANT, {
 			chatId: data.chatId,
 			success: false,
 			error: error,
