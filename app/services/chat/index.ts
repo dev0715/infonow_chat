@@ -12,7 +12,7 @@ import { Chat } from "../../../sequelize/models/Chat";
 import { ChatParticipant } from "../../../sequelize/models/ChatParticipant";
 import { Message } from "../../../sequelize/models/Message";
 
-import { Op } from "sequelize";
+import { op as Op } from "../../../sequelize";
 
 export class ChatUtils {
 	static async getAllUserChats(

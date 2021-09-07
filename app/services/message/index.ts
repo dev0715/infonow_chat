@@ -5,7 +5,7 @@ import {
 import { SequelizeAttributes } from "../../../sequelize/types";
 import { User } from "../../../sequelize/models/User";
 import { Message } from "../../../sequelize/models/Message";
-import { Op } from "sequelize";
+import { op as Op } from "../../../sequelize";
 import { ChatUtils } from "../chat";
 import moment, { Moment } from "moment";
 import { Document, sequelize } from "../../../sequelize";
@@ -45,7 +45,7 @@ export class MessageUtils {
 			},
 			limit: 25,
 			order: [["messageId", "DESC"]],
-		});
+		} as any);
 
 		return messages.reverse();
 	}

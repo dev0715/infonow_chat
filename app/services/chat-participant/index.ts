@@ -11,7 +11,7 @@ import {
 } from "../../../sequelize/validation-schema";
 import { BadRequestError } from "../../../sequelize/utils/errors";
 
-import { Op } from "sequelize";
+import { op as Op } from "../../../sequelize";
 import moment, { Moment } from "moment";
 import { Message } from "../../../sequelize/models/Message";
 import { MessageUtils } from "../message";

@@ -13,7 +13,6 @@
   "dependencies": {
     "@types/chalk": "^2.2.0",
     "@types/dotenv": "^8.2.0",
-    "Sequelize": "file:sequelize",
     "awesome-phonenumber": "^2.49.0",
     "bad-words": "^3.0.4",
     "body-parser": "^1.19.0",
@@ -34,6 +33,7 @@
     "redis": "^3.1.2",
     "reflect-metadata": "^0.1.13",
     "sequelize": "^5.22.4",
+    "Sequelize": "file:sequelize",
     "sequelize-typescript-paginate": "^1.1.0",
     "socket.io": "^4.0.1",
     "socket.io-redis": "^6.1.0",
