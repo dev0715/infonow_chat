@@ -160,7 +160,7 @@ export class ChatUtils {
 								model: ChatParticipant,
 								where: {
 									chatParticipantId: {
-										[Op.and]: [
+										[Op.in]: [
 											...users!.map((u) => u!._userId!),
 										],
 									},
