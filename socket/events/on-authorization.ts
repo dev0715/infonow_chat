@@ -26,14 +26,14 @@ export async function OnAuthorization(
 	data: SocketData
 ) {
 	try {
-		console.log(`USER_AUTHORIZATION`, data.authorization);
+		
 		if (data.authorization) {
 			let user = await authorizeUser(data.authorization);
 			socket.userId = user.userId;
 			socket.user = user;
 			socket.roomsJoined = {};
 
-			console.log(`USER AUTHORIZED`);
+			
 			socket.emit(IOEvents.AUTHORIZATION, { success: true });
 
 			//------------ATTACH EVENTS----------//

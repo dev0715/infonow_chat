@@ -149,6 +149,8 @@ export class ChatUtils {
 				chatParticipants: participantsData,
 			} as any;
 
+						
+
 			if (chat.type == "chat") {
 				let exChat = (await Chat.findOrCreateSafe(
 					SequelizeAttributes.WithIndexes,
@@ -161,9 +163,9 @@ export class ChatUtils {
 								where: {
 									chatParticipantId: {
 										[Op.in]: [
-											...users!.map((u) => u!._userId!),
-										],
-									},
+											...participantUsers!.map((u) => u!._userId!),
+										]										
+									}
 								},
 							},
 						],
