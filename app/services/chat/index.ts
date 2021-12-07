@@ -23,6 +23,7 @@ export class ChatUtils {
 			include: [
 				{
 					model: User,
+					attributes:['_userId','userId','name','profilepicture','about','roleId'],
 					where: {
 						userId,
 					},
@@ -37,10 +38,17 @@ export class ChatUtils {
 		let options: any = {
 			subQuery: false,
 			include: [
-				User,
+				{
+				model:User,
+				attributes:['_userId','userId','name','profilepicture','about','roleId'],
+			},
 				{
 					model: ChatParticipant,
-					include: [User],
+					
+					include: [{
+						model:User,
+						attributes:['_userId','userId','name','profilepicture','about','roleId'],
+					}],
 				},
 				{
 					model: Message,

@@ -14,6 +14,8 @@ import {
 	NewChatParticipantSchemaType,
 	NewChatSchemaType,
 } from "../../../sequelize/validation-schema";
+import { Student, Teacher } from "../../../sequelize";
+import { SequelizeAttributes } from "../../../sequelize/types";
 
 const chatAvatar = Configurations.constants.chatAvatarUpload;
 
@@ -24,7 +26,21 @@ export async function getAllUserChats(
 	next: NextFunction
 ) {
 	try {
-		const chats = await ChatUtils.getAllUserChats(req.params.userId);
+		const _userId = req.CurrentUser?._userId
+		let chats = await ChatUtils.getAllUserChats(req.params.userId);
+		chats = JSON.parse(JSON.stringify(chats));
+		
+		if(req.CurrentUser?.roleId == 'teacher'){
+			const students = await Student.findAll({
+				include:[Teacher],
+				where:{ teacherId :req.CurrentUser._userId}
+			})
+			let Ids = students.map(s=> s.studentId!)
+			chats.forEach((chat: any) =>{
+				let index = chat.chatParticipants.findIndex((participant:any) => Ids.indexOf(participant.user._userId!))
+				chat.isChatAllowed = index > -1;
+			})
+		}
 		if (chats.length > 0) return DataResponse(res, 200, chats);
 		throw new NotFoundError("No chat found");
 	} catch (err) {
